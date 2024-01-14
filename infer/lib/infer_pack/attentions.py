@@ -173,7 +173,8 @@ class MultiHeadAttention(nn.Module):
         proximal_init=False,
     ):
         super(MultiHeadAttention, self).__init__()
-        assert channels % n_heads == 0
+        if channels % n_heads != 0:
+            raise ValueError("channels must be divisible by n_heads.")
 
         self.channels = channels
         self.out_channels = out_channels
@@ -241,9 +242,10 @@ class MultiHeadAttention(nn.Module):
 
         scores = torch.matmul(query / math.sqrt(self.k_channels), key.transpose(-2, -1))
         if self.window_size is not None:
-            assert (
-                t_s == t_t
-            ), "Relative attention is only available for self-attention."
+            if t_s != t_t:
+                raise ValueError(
+                    "Relative attention is only available for self-attention."
+                )
             key_relative_embeddings = self._get_relative_embeddings(self.emb_rel_k, t_s)
             rel_logits = self._matmul_with_relative_keys(
                 query / math.sqrt(self.k_channels), key_relative_embeddings
@@ -251,16 +253,20 @@ class MultiHeadAttention(nn.Module):
             scores_local = self._relative_position_to_absolute_position(rel_logits)
             scores = scores + scores_local
         if self.proximal_bias:
-            assert t_s == t_t, "Proximal bias is only available for self-attention."
+            if t_s != t_t:
+                raise ValueError(
+                    "Proximal bias is only available for self-attention."
+                )
             scores = scores + self._attention_bias_proximal(t_s).to(
                 device=scores.device, dtype=scores.dtype
             )
         if mask is not None:
             scores = scores.masked_fill(mask == 0, -1e4)
             if self.block_length is not None:
-                assert (
-                    t_s == t_t
-                ), "Local attention is only available for self-attention."
+                if t_s != t_t:
+                    raise ValueError(
+                        "Local attention is only available for self-attention."
+                    )
                 block_mask = (
                     torch.ones_like(scores)
                     .triu(-self.block_length)
