@@ -595,7 +595,8 @@ class GeneratorNSF(torch.nn.Module):
                             xs += resblock(x)
                 # This assertion cannot be ignored! \
                 # If ignored, it will cause torch.jit.script() compilation errors
-                assert isinstance(xs, torch.Tensor)
+                if not isinstance(xs, torch.Tensor):
+                    raise RuntimeError("xs is not a tensor")
                 x = xs / self.num_kernels
         x = F.leaky_relu(x)
         x = self.conv_post(x)
@@ -794,8 +795,10 @@ class SynthesizerTrnMs256NSFsid(nn.Module):
         m_p, logs_p, x_mask = self.enc_p(phone, pitch, phone_lengths)
         z_p = (m_p + torch.exp(logs_p) * torch.randn_like(m_p) * 0.66666) * x_mask
         if skip_head is not None and return_length is not None:
-            assert isinstance(skip_head, torch.Tensor)
-            assert isinstance(return_length, torch.Tensor)
+            if not isinstance(skip_head, torch.Tensor):
+                raise TypeError("skip_head must be a Tensor")
+            if not isinstance(return_length, torch.Tensor):
+                raise TypeError("return_length must be a Tensor")
             head = int(skip_head.item())
             length = int(return_length.item())
             z_p = z_p[:, :, head : head + length]
@@ -956,8 +959,10 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
         m_p, logs_p, x_mask = self.enc_p(phone, pitch, phone_lengths)
         z_p = (m_p + torch.exp(logs_p) * torch.randn_like(m_p) * 0.66666) * x_mask
         if skip_head is not None and return_length is not None:
-            assert isinstance(skip_head, torch.Tensor)
-            assert isinstance(return_length, torch.Tensor)
+            if not isinstance(skip_head, torch.Tensor):
+                raise TypeError("skip_head must be a Tensor")
+            if not isinstance(return_length, torch.Tensor):
+                raise TypeError("return_length must be a Tensor")
             head = int(skip_head.item())
             length = int(return_length.item())
             z_p = z_p[:, :, head : head + length]
@@ -1107,8 +1112,10 @@ class SynthesizerTrnMs256NSFsid_nono(nn.Module):
         m_p, logs_p, x_mask = self.enc_p(phone, None, phone_lengths)
         z_p = (m_p + torch.exp(logs_p) * torch.randn_like(m_p) * 0.66666) * x_mask
         if skip_head is not None and return_length is not None:
-            assert isinstance(skip_head, torch.Tensor)
-            assert isinstance(return_length, torch.Tensor)
+            if not isinstance(skip_head, torch.Tensor):
+                raise TypeError("skip_head must be a Tensor")
+            if not isinstance(return_length, torch.Tensor):
+                raise TypeError("return_length must be a Tensor")
             head = int(skip_head.item())
             length = int(return_length.item())
             z_p = z_p[:, :, head : head + length]
@@ -1257,8 +1264,10 @@ class SynthesizerTrnMs768NSFsid_nono(nn.Module):
         m_p, logs_p, x_mask = self.enc_p(phone, None, phone_lengths)
         z_p = (m_p + torch.exp(logs_p) * torch.randn_like(m_p) * 0.66666) * x_mask
         if skip_head is not None and return_length is not None:
-            assert isinstance(skip_head, torch.Tensor)
-            assert isinstance(return_length, torch.Tensor)
+            if not isinstance(skip_head, torch.Tensor):
+                raise TypeError("skip_head must be a Tensor")
+            if not isinstance(return_length, torch.Tensor):
+                raise TypeError("return_length must be a Tensor")
             head = int(skip_head.item())
             length = int(return_length.item())
             z_p = z_p[:, :, head : head + length]
