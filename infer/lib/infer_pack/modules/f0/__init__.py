@@ -8,13 +8,14 @@ class F0PredictorFactory:
     @staticmethod
     def create(f0_method: str, hop_length: int, sample_rate: int) -> F0Predictor:
         if f0_method == "dio":
-            return DioF0Predictor(hop_length=hop_length, sampling_rate=sample_rate)
+            cls = DioF0Predictor
         elif f0_method == "harvest":
-            return HarvestF0Predictor(hop_length=hop_length, sampling_rate=sample_rate)
+            cls = HarvestF0Predictor
         elif f0_method == "pm":
-            return PMF0Predictor(hop_length=hop_length, sampling_rate=sample_rate)
+            cls =  PMF0Predictor
         else:
             raise ValueError("Invalid predictor type")
+        return cls(hop_length=hop_length, sampling_rate=sample_rate)
 
 
 __all__ = [
