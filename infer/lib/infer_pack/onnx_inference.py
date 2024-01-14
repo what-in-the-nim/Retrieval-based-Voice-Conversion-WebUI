@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class ContentVec:
-    def __init__(self, vec_path="pretrained/vec-768-layer-12.onnx", device=None):
-        logger.info("Load model(s) from {}".format(vec_path))
-        if device == "cpu" or device is None:
+    def __init__(self, path: str = "pretrained/vec-768-layer-12.onnx", device: str = "cpu") -> None:
+        logger.info(f"Load model from {path}")
+        if device == "cpu":
             providers = ["CPUExecutionProvider"]
         elif device == "cuda":
             providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
@@ -20,7 +20,7 @@ class ContentVec:
             providers = ["DmlExecutionProvider"]
         else:
             raise RuntimeError("Unsportted Device")
-        self.model = onnxruntime.InferenceSession(vec_path, providers=providers)
+        self.model = onnxruntime.InferenceSession(path, providers=providers)
 
     def __call__(self, wav):
         return self.forward(wav)
@@ -42,11 +42,11 @@ class OnnxRVC:
         model_path,
         sr=40000,
         hop_size=512,
-        vec_path="vec-768-layer-12",
+        vec_name="vec-768-layer-12",
         device="cpu",
     ):
-        vec_path = f"pretrained/{vec_path}.onnx"
-        self.vec_model = ContentVec(vec_path, device)
+        vec_name = f"pretrained/{vec_name}.onnx"
+        self.vec_model = ContentVec(vec_name, device)
         if device == "cpu" or device is None:
             providers = ["CPUExecutionProvider"]
         elif device == "cuda":

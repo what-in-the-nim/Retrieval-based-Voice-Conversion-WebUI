@@ -13,7 +13,7 @@ wav_path = "123.wav"  # 输入路径或ByteIO实例
 out_path = "out.wav"  # 输出路径或ByteIO实例
 
 model = OnnxRVC(
-    model_path, vec_path=vec_name, sr=sampling_rate, hop_size=hop_size, device="cuda"
+    model_path, vec_name=vec_name, sr=sampling_rate, hop_size=hop_size, device="cuda"
 )
 
 audio = model.inference(wav_path, sid, f0_method=f0_method, f0_up_key=f0_up_key)
