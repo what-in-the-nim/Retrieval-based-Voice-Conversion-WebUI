@@ -62,7 +62,10 @@ class STFT(torch.nn.Module):
         forward_basis = torch.FloatTensor(fourier_basis)
         inverse_basis = torch.FloatTensor(np.linalg.pinv(fourier_basis))
 
-        assert filter_length >= self.win_length
+        if filter_length < self.win_length:
+            raise ValueError(
+                "Filter length must be greater than or equal to the window size."
+            )
         # get window and zero center pad it to filter_length
         fft_window = get_window(window, self.win_length, fftbins=True)
         fft_window = pad_center(fft_window, size=filter_length)
