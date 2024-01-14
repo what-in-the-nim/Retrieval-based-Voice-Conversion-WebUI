@@ -1,7 +1,7 @@
 import argparse
+import json
 import os
 import sys
-import json
 from multiprocessing import cpu_count
 
 import torch

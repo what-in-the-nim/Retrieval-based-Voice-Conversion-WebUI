@@ -3,8 +3,7 @@
 <h1>Retrieval-based-Voice-Conversion-WebUI</h1>
 VITS 기반의 간단하고 사용하기 쉬운 음성 변환 프레임워크.<br><br>
 
-[![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange
-)](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
+[![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
 
 <img src="https://counter.seku.su/cmoe?name=rvc&theme=r34" /><br>
 
@@ -80,7 +79,7 @@ RVC 모델은 추론과 훈련을 위하여 다른 사전 모델이 필요합니
 ```bash
 ./assets/hubert/hubert_base.pt
 
-./assets/pretrained 
+./assets/pretrained
 
 ./assets/uvr5_weights
 

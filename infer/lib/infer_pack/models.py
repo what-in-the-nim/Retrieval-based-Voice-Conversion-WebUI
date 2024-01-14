@@ -1,5 +1,5 @@
-import math
 import logging
+import math
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,10 @@ class TextEncoder256(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(
-        self, phone: torch.Tensor, pitch: Optional[torch.Tensor], lengths: torch.Tensor
+        self,
+        phone: torch.Tensor,
+        pitch: Optional[torch.Tensor],
+        lengths: torch.Tensor,
     ):
         if pitch is None:
             x = self.emb_phone(phone)

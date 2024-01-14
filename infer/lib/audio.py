@@ -1,10 +1,10 @@
 import os
 import traceback
+from io import BytesIO
 
+import av
 import librosa
 import numpy as np
-import av
-from io import BytesIO
 
 
 def wav2(i, o, format):

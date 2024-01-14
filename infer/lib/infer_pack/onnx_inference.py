@@ -1,9 +1,9 @@
+import logging
+
 import librosa
 import numpy as np
 import onnxruntime
 import soundfile
-
-import logging
 
 logger = logging.getLogger(__name__)
 

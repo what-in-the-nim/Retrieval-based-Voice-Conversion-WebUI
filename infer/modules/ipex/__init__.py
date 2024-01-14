@@ -1,10 +1,12 @@
+import contextlib
 import os
 import sys
-import contextlib
-import torch
+
 import intel_extension_for_pytorch as ipex  # pylint: disable=import-error, unused-import
-from .hijacks import ipex_hijacks
+import torch
+
 from .attention import attention_init
+from .hijacks import ipex_hijacks
 
 # pylint: disable=protected-access, missing-function-docstring, line-too-long
 
@@ -135,9 +137,9 @@ def ipex_init():  # pylint: disable=too-many-statements
             torch.cuda.amp.GradScaler = torch.xpu.amp.GradScaler
         except Exception:  # pylint: disable=broad-exception-caught
             try:
-                from .gradscaler import (
+                from .gradscaler import (  # pylint: disable=import-outside-toplevel, import-error
                     gradscaler_init,
-                )  # pylint: disable=import-outside-toplevel, import-error
+                )
 
                 gradscaler_init()
                 torch.cuda.amp.GradScaler = torch.xpu.amp.GradScaler

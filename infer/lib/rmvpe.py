@@ -1,6 +1,7 @@
-from io import BytesIO
 import os
+from io import BytesIO
 from typing import List, Optional, Tuple
+
 import numpy as np
 import torch
 
@@ -16,12 +17,12 @@ try:
         ipex_init()
 except Exception:  # pylint: disable=broad-exception-caught
     pass
+import logging
+
 import torch.nn as nn
 import torch.nn.functional as F
 from librosa.util import normalize, pad_center, tiny
 from scipy.signal import get_window
-
-import logging
 
 logger = logging.getLogger(__name__)
 

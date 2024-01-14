@@ -1,5 +1,6 @@
 import os
 import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -81,7 +82,6 @@ if __name__ == "__main__":
     from queue import Empty
 
     import librosa
-    from tools.torchgate import TorchGate
     import numpy as np
     import PySimpleGUI as sg
     import sounddevice as sd
@@ -90,8 +90,9 @@ if __name__ == "__main__":
     import torchaudio.transforms as tat
 
     import tools.rvc_for_realtime as rvc_for_realtime
-    from i18n.i18n import I18nAuto
     from configs.config import Config
+    from i18n.i18n import I18nAuto
+    from tools.torchgate import TorchGate
 
     i18n = I18nAuto()
 

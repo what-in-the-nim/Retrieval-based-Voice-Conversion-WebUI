@@ -1,37 +1,39 @@
 import os
 import sys
+
 from dotenv import load_dotenv
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 load_dotenv()
-from infer.modules.vc.modules import VC
-from infer.modules.uvr5.modules import uvr
+import json
+import logging
+import pathlib
+import shutil
+import threading
+import traceback
+import warnings
+from random import shuffle
+from subprocess import Popen
+from time import sleep
+
+import fairseq
+import faiss
+import gradio as gr
+import numpy as np
+import torch
+from sklearn.cluster import MiniBatchKMeans
+
+from configs.config import Config
+from i18n.i18n import I18nAuto
 from infer.lib.train.process_ckpt import (
     change_info,
     extract_small_model,
     merge,
     show_info,
 )
-from i18n.i18n import I18nAuto
-from configs.config import Config
-from sklearn.cluster import MiniBatchKMeans
-import torch
-import numpy as np
-import gradio as gr
-import faiss
-import fairseq
-import pathlib
-import json
-from time import sleep
-from subprocess import Popen
-from random import shuffle
-import warnings
-import traceback
-import threading
-import shutil
-import logging
-
+from infer.modules.uvr5.modules import uvr
+from infer.modules.vc.modules import VC
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 

@@ -1,6 +1,6 @@
+import logging
 import os
 import sys
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,10 @@ try:
     import intel_extension_for_pytorch as ipex  # pylint: disable=import-error, unused-import
 
     if torch.xpu.is_available():
+        from torch.xpu.amp import autocast
+
         from infer.modules.ipex import ipex_init
         from infer.modules.ipex.gradscaler import gradscaler_init
-        from torch.xpu.amp import autocast
 
         GradScaler = gradscaler_init()
         ipex_init()

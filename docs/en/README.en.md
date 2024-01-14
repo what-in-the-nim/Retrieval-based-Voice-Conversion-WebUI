@@ -3,11 +3,10 @@
 <h1>Retrieval-based-Voice-Conversion-WebUI</h1>
 An easy-to-use Voice Conversion framework based on VITS.<br><br>
 
-[![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange
-)](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
+[![madewithlove](https://img.shields.io/badge/made_with-%E2%9D%A4-red?style=for-the-badge&labelColor=orange)](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
 
 <img src="https://counter.seku.su/cmoe?name=rvc&theme=r34" /><br>
-  
+
 [![Open In Colab](https://img.shields.io/badge/Colab-F9AB00?style=for-the-badge&logo=googlecolab&color=525252)](https://colab.research.google.com/github/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/Retrieval_based_Voice_Conversion_WebUI.ipynb)
 [![Licence](https://img.shields.io/github/license/RVC-Project/Retrieval-based-Voice-Conversion-WebUI?style=for-the-badge)](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/LICENSE)
 [![Huggingface](https://img.shields.io/badge/🤗%20-Spaces-yellow.svg?style=for-the-badge)](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/)
@@ -16,11 +15,11 @@ An easy-to-use Voice Conversion framework based on VITS.<br><br>
 
 </div>
 
-------
-[**Changelog**](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/docs/Changelog_EN.md) | [**FAQ (Frequently Asked Questions)**](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/wiki/FAQ-(Frequently-Asked-Questions)) 
+---
+
+[**Changelog**](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/docs/Changelog_EN.md) | [**FAQ (Frequently Asked Questions)**](<https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/wiki/FAQ-(Frequently-Asked-Questions)>)
 
 [**English**](../en/README.en.md) | [**中文简体**](../../README.md) | [**日本語**](../jp/README.ja.md) | [**한국어**](../kr/README.ko.md) ([**韓國語**](../kr/README.ko.han.md)) | [**Türkçe**](../tr/README.tr.md)
-
 
 Check our [Demo Video](https://www.bilibili.com/video/BV1pm4y1z7Gm/) here!
 
@@ -39,21 +38,24 @@ Realtime Voice Conversion GUI：go-realtime-gui.bat
 > Please look forward to the pretrained base model of RVCv3, which has larger parameters, more training data, better results, unchanged inference speed, and requires less training data for training.
 
 ## Features:
-+ Reduce tone leakage by replacing the source feature to training-set feature using top1 retrieval;
-+ Easy + fast training, even on poor graphics cards;
-+ Training with a small amounts of data (>=10min low noise speech recommended);
-+ Model fusion to change timbres (using ckpt processing tab->ckpt merge);
-+ Easy-to-use WebUI;
-+ UVR5 model to quickly separate vocals and instruments;
-+ High-pitch Voice Extraction Algorithm [InterSpeech2023-RMVPE](#Credits) to prevent a muted sound problem. Provides the best results (significantly) and is faster with lower resource consumption than Crepe_full;
-+ AMD/Intel graphics cards acceleration supported;
-+ Intel ARC graphics cards acceleration with IPEX supported.
+
+- Reduce tone leakage by replacing the source feature to training-set feature using top1 retrieval;
+- Easy + fast training, even on poor graphics cards;
+- Training with a small amounts of data (>=10min low noise speech recommended);
+- Model fusion to change timbres (using ckpt processing tab->ckpt merge);
+- Easy-to-use WebUI;
+- UVR5 model to quickly separate vocals and instruments;
+- High-pitch Voice Extraction Algorithm [InterSpeech2023-RMVPE](#Credits) to prevent a muted sound problem. Provides the best results (significantly) and is faster with lower resource consumption than Crepe_full;
+- AMD/Intel graphics cards acceleration supported;
+- Intel ARC graphics cards acceleration with IPEX supported.
 
 ## Preparing the environment
+
 The following commands need to be executed with Python 3.8 or higher.
 
 (Windows/Linux)
 First install the main dependencies through pip:
+
 ```bash
 # Install PyTorch-related core dependencies, skip if installed
 # Reference: https://pytorch.org/get-started/locally/
@@ -67,6 +69,7 @@ pip install torch torchvision torchaudio
 ```
 
 Then can use poetry to install the other dependencies:
+
 ```bash
 # Install the Poetry dependency management tool, skip if installed
 # Reference: https://python-poetry.org/docs/#installation
@@ -77,6 +80,7 @@ poetry install
 ```
 
 You can also use pip to install them:
+
 ```bash
 
 for Nvidia graphics cards
@@ -85,20 +89,23 @@ for Nvidia graphics cards
 for AMD/Intel graphics cards on Windows (DirectML)：
   pip install -r requirements-dml.txt
 
-for Intel ARC graphics cards on Linux / WSL using Python 3.10: 
+for Intel ARC graphics cards on Linux / WSL using Python 3.10:
   pip install -r requirements-ipex.txt
 
 for AMD graphics cards on Linux (ROCm):
   pip install -r requirements-amd.txt
 ```
 
-------
+---
+
 Mac users can install dependencies via `run.sh`:
+
 ```bash
 sh ./run.sh
 ```
 
 ## Preparation of other Pre-models
+
 RVC requires other pre-models to infer and train.
 
 ```bash
@@ -109,10 +116,11 @@ python tools/download_models.py
 Or just download them by yourself from our [Huggingface space](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main/).
 
 Here's a list of Pre-models and other files that RVC needs:
+
 ```bash
 ./assets/hubert/hubert_base.pt
 
-./assets/pretrained 
+./assets/pretrained
 
 ./assets/uvr5_weights
 
@@ -146,6 +154,7 @@ https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/rmvpe.pt
 Intel ARC graphics cards users needs to run `source /opt/intel/oneapi/setvars.sh` command before starting Webui.
 
 Then use this command to start Webui:
+
 ```bash
 python infer-web.py
 ```
@@ -153,41 +162,49 @@ python infer-web.py
 If you are using Windows or macOS, you can download and extract `RVC-beta.7z` to use RVC directly by using `go-web.bat` on windows or `sh ./run.sh` on macOS to start Webui.
 
 ## ROCm Support for AMD graphic cards (Linux only)
+
 To use ROCm on Linux install all required drivers as described [here](https://rocm.docs.amd.com/en/latest/deploy/linux/os-native/install.html).
 
 On Arch use pacman to install the driver:
-````
+
+```
 pacman -S rocm-hip-sdk rocm-opencl-sdk
-````
+```
 
 You might also need to set these environment variables (e.g. on a RX6700XT):
-````
+
+```
 export ROCM_PATH=/opt/rocm
 export HSA_OVERRIDE_GFX_VERSION=10.3.0
-````
+```
+
 Make sure your user is part of the `render` and `video` group:
-````
+
+```
 sudo usermod -aG render $USERNAME
 sudo usermod -aG video $USERNAME
-````
+```
+
 After that you can run the WebUI:
+
 ```bash
 python infer-web.py
 ```
 
 ## Credits
-+ [ContentVec](https://github.com/auspicious3000/contentvec/)
-+ [VITS](https://github.com/jaywalnut310/vits)
-+ [HIFIGAN](https://github.com/jik876/hifi-gan)
-+ [Gradio](https://github.com/gradio-app/gradio)
-+ [FFmpeg](https://github.com/FFmpeg/FFmpeg)
-+ [Ultimate Vocal Remover](https://github.com/Anjok07/ultimatevocalremovergui)
-+ [audio-slicer](https://github.com/openvpi/audio-slicer)
-+ [Vocal pitch extraction:RMVPE](https://github.com/Dream-High/RMVPE)
-  + The pretrained model is trained and tested by [yxlllc](https://github.com/yxlllc/RMVPE) and [RVC-Boss](https://github.com/RVC-Boss).
-  
+
+- [ContentVec](https://github.com/auspicious3000/contentvec/)
+- [VITS](https://github.com/jaywalnut310/vits)
+- [HIFIGAN](https://github.com/jik876/hifi-gan)
+- [Gradio](https://github.com/gradio-app/gradio)
+- [FFmpeg](https://github.com/FFmpeg/FFmpeg)
+- [Ultimate Vocal Remover](https://github.com/Anjok07/ultimatevocalremovergui)
+- [audio-slicer](https://github.com/openvpi/audio-slicer)
+- [Vocal pitch extraction:RMVPE](https://github.com/Dream-High/RMVPE)
+  - The pretrained model is trained and tested by [yxlllc](https://github.com/yxlllc/RMVPE) and [RVC-Boss](https://github.com/RVC-Boss).
+
 ## Thanks to all contributors for their efforts
+
 <a href="https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/graphs/contributors" target="_blank">
   <img src="https://contrib.rocks/image?repo=RVC-Project/Retrieval-based-Voice-Conversion-WebUI" />
 </a>
-
