@@ -1,14 +1,15 @@
-from typing import Optional, Union
+from typing import Optional
 
 import torch
-from torch.nn.functional import conv1d, conv2d
+import torch.nn.functional as F
+from torch.nn import Module
 
 from infer.lib.rmvpe import STFT
 
 from .utils import amp_to_db, linspace, temperature_sigmoid
 
 
-class TorchGate(torch.nn.Module):
+class TorchGate(Module):
     """
     A PyTorch module that applies a spectral gate to an input signal.
 
@@ -32,7 +33,6 @@ class TorchGate(torch.nn.Module):
                                      (default: {50}).
     """
 
-    @torch.no_grad()
     def __init__(
         self,
         sr: int,
@@ -75,7 +75,7 @@ class TorchGate(torch.nn.Module):
         self.register_buffer("smoothing_filter", self._generate_mask_smoothing_filter())
 
     @torch.no_grad()
-    def _generate_mask_smoothing_filter(self) -> Union[torch.Tensor, None]:
+    def _generate_mask_smoothing_filter(self) -> Optional[torch.Tensor]:
         """
         A PyTorch module that applies a spectral gate to an input signal using the STFT.
 
@@ -86,30 +86,30 @@ class TorchGate(torch.nn.Module):
             If both self.freq_mask_smooth_hz and self.time_mask_smooth_ms are None, returns None.
         """
         if self.freq_mask_smooth_hz is None and self.time_mask_smooth_ms is None:
-            return None
+            return
 
-        n_grad_freq = (
-            1
-            if self.freq_mask_smooth_hz is None
-            else int(self.freq_mask_smooth_hz / (self.sr / (self.n_fft / 2)))
-        )
-        if n_grad_freq < 1:
-            raise ValueError(
-                f"freq_mask_smooth_hz needs to be at least {int((self.sr / (self._n_fft / 2)))} Hz"
-            )
+        if self.freq_mask_smooth_hz is None:
+            n_grad_freq = 1
+        else:
+            n_grad_freq = int(self.freq_mask_smooth_hz / (self.sr / (self.n_fft / 2)))
 
-        n_grad_time = (
-            1
-            if self.time_mask_smooth_ms is None
-            else int(self.time_mask_smooth_ms / ((self.hop_length / self.sr) * 1000))
-        )
-        if n_grad_time < 1:
-            raise ValueError(
-                f"time_mask_smooth_ms needs to be at least {int((self.hop_length / self.sr) * 1000)} ms"
-            )
+            if n_grad_freq < 1:
+                raise ValueError(
+                    f"freq_mask_smooth_hz needs to be at least {int((self.sr / (self.n_fft / 2)))} Hz"
+                )
+
+        if self.time_mask_smooth_ms is None:
+            n_grad_time = 1
+        else:
+            n_grad_time = int(self.time_mask_smooth_ms / ((self.hop_length / self.sr) * 1000))
+
+            if n_grad_time < 1:
+                raise ValueError(
+                    f"time_mask_smooth_ms needs to be at least {int((self.hop_length / self.sr) * 1000)} ms"
+                )
 
         if n_grad_time == 1 and n_grad_freq == 1:
-            return None
+            return
 
         v_f = torch.cat(
             [
@@ -190,7 +190,7 @@ class TorchGate(torch.nn.Module):
             are set to 1, and the rest are set to 0.
         """
         X_smoothed = (
-            conv1d(
+            F.conv1d(
                 X_abs.reshape(-1, 1, X_abs.shape[-1]),
                 torch.ones(
                     self.n_movemean_nonstationary,
@@ -258,7 +258,7 @@ class TorchGate(torch.nn.Module):
 
         # Smooth signal mask with 2D convolution
         if self.smoothing_filter is not None:
-            sig_mask = conv2d(
+            sig_mask = F.conv2d(
                 sig_mask.unsqueeze(1),
                 self.smoothing_filter.to(sig_mask.dtype),
                 padding="same",
