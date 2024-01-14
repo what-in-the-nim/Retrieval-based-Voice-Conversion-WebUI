@@ -1,4 +1,5 @@
 import math
+import os
 import random
 from typing import Optional, Tuple
 
@@ -9,6 +10,7 @@ from fairseq.checkpoint_utils import load_model_ensemble_and_task
 
 # from fairseq.data.data_utils import compute_mask_indices
 from fairseq.utils import index_put
+from fairseq.models.hubert import HubertModel
 
 
 # @torch.jit.script
@@ -24,73 +26,6 @@ def pad_to_multiple(x, multiple, dim=-1, value=0):
     pad_offset = (0,) * (-1 - dim) * 2
 
     return F.pad(x, (*pad_offset, 0, remainder), value=value), remainder
-
-
-def extract_features(
-    self,
-    x,
-    padding_mask=None,
-    tgt_layer=None,
-    min_layer=0,
-):
-    if padding_mask is not None:
-        x = index_put(x, padding_mask, 0)
-
-    x_conv = self.pos_conv(x.transpose(1, 2))
-    x_conv = x_conv.transpose(1, 2)
-    x = x + x_conv
-
-    if not self.layer_norm_first:
-        x = self.layer_norm(x)
-
-    # pad to the sequence length dimension
-    x, pad_length = pad_to_multiple(x, self.required_seq_len_multiple, dim=-2, value=0)
-    if pad_length > 0 and padding_mask is None:
-        padding_mask = x.new_zeros((x.size(0), x.size(1)), dtype=torch.bool)
-        padding_mask[:, -pad_length:] = True
-    else:
-        padding_mask, _ = pad_to_multiple(
-            padding_mask, self.required_seq_len_multiple, dim=-1, value=True
-        )
-    x = F.dropout(x, p=self.dropout, training=self.training)
-
-    # B x T x C -> T x B x C
-    x = x.transpose(0, 1)
-
-    layer_results = []
-    r = None
-    for i, layer in enumerate(self.layers):
-        dropout_probability = np.random.random() if self.layerdrop > 0 else 1
-        if not self.training or (dropout_probability > self.layerdrop):
-            x, (z, lr) = layer(
-                x, self_attn_padding_mask=padding_mask, need_weights=False
-            )
-            if i >= min_layer:
-                layer_results.append((x, z, lr))
-        if i == tgt_layer:
-            r = x
-            break
-
-    if r is not None:
-        x = r
-
-    # T x B x C -> B x T x C
-    x = x.transpose(0, 1)
-
-    # undo paddding
-    if pad_length > 0:
-        x = x[:, :-pad_length]
-
-        def undo_pad(a, b, c):
-            return (
-                a[:-pad_length],
-                b[:-pad_length] if b is not None else b,
-                c[:-pad_length],
-            )
-
-        layer_results = [undo_pad(*u) for u in layer_results]
-
-    return x, layer_results
 
 
 def compute_mask_indices(
@@ -225,119 +160,28 @@ def compute_mask_indices(
     return mask
 
 
-def apply_mask(self, x, padding_mask, target_list):
-    B, T, C = x.shape
-    torch.zeros_like(x)
-    if self.mask_prob > 0:
-        mask_indices = compute_mask_indices(
-            (B, T),
-            padding_mask,
-            self.mask_prob,
-            self.mask_length,
-            self.mask_selection,
-            self.mask_other,
-            min_masks=2,
-            no_overlap=self.no_mask_overlap,
-            min_space=self.mask_min_space,
-        )
-        mask_indices = mask_indices.to(x.device)
-        x[mask_indices] = self.mask_emb
-    else:
-        mask_indices = None
-
-    if self.mask_channel_prob > 0:
-        mask_channel_indices = compute_mask_indices(
-            (B, C),
-            None,
-            self.mask_channel_prob,
-            self.mask_channel_length,
-            self.mask_channel_selection,
-            self.mask_channel_other,
-            no_overlap=self.no_mask_channel_overlap,
-            min_space=self.mask_channel_min_space,
-        )
-        mask_channel_indices = (
-            mask_channel_indices.to(x.device).unsqueeze(1).expand(-1, T, -1)
-        )
-        x[mask_channel_indices] = 0
-
-    return x, mask_indices
-
-
 def get_hubert_model(
-    model_path="assets/hubert/hubert_base.pt", device=torch.device("cpu")
-):
-    models, _, _ = load_model_ensemble_and_task(
-        [model_path],
-        suffix="",
-    )
-    hubert_model = models[0]
-    hubert_model = hubert_model.to(device)
+    path: str = "assets/hubert/hubert_base.pt",
+    device: str | torch.device = torch.device("cpu"),
+) -> HubertModel:
+    """Load Huber model from given path and cast to device."""
+    # Check if model exists
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Hubert model not found at {path}")
+    # Load Fairseq Hubert model
+    models, _, _ = load_model_ensemble_and_task([path])
+    model: HubertModel = models[0]
+    # Cast model to device
+    model = model.to(device)
 
-    def _apply_mask(x, padding_mask, target_list):
-        return apply_mask(hubert_model, x, padding_mask, target_list)
-
-    hubert_model.apply_mask = _apply_mask
-
-    def _extract_features(
-        x,
-        padding_mask=None,
-        tgt_layer=None,
-        min_layer=0,
-    ):
-        return extract_features(
-            hubert_model.encoder,
-            x,
-            padding_mask=padding_mask,
-            tgt_layer=tgt_layer,
-            min_layer=min_layer,
-        )
-
-    hubert_model.encoder.extract_features = _extract_features
-
-    hubert_model._forward = hubert_model.forward
-
-    def hubert_extract_features(
-        self,
-        source: torch.Tensor,
-        padding_mask: Optional[torch.Tensor] = None,
-        mask: bool = False,
-        ret_conv: bool = False,
-        output_layer: Optional[int] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        res = self._forward(
-            source,
-            padding_mask=padding_mask,
-            mask=mask,
-            features_only=True,
-            output_layer=output_layer,
-        )
-        feature = res["features"] if ret_conv else res["x"]
-        return feature, res["padding_mask"]
-
-    def _hubert_extract_features(
-        source: torch.Tensor,
-        padding_mask: Optional[torch.Tensor] = None,
-        mask: bool = False,
-        ret_conv: bool = False,
-        output_layer: Optional[int] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        return hubert_extract_features(
-            hubert_model, source, padding_mask, mask, ret_conv, output_layer
-        )
-
-    hubert_model.extract_features = _hubert_extract_features
-
+    # Add `infer` method to model
     def infer(source, padding_mask, output_layer: torch.Tensor):
         output_layer = output_layer.item()
-        logits = hubert_model.extract_features(
+        logits = model.extract_features(
             source=source, padding_mask=padding_mask, output_layer=output_layer
         )
-        feats = hubert_model.final_proj(logits[0]) if output_layer == 9 else logits[0]
+        feats = model.final_proj(logits[0]) if output_layer == 9 else logits[0]
         return feats
 
-    hubert_model.infer = infer
-    # hubert_model.forward=infer
-    # hubert_model.forward
-
-    return hubert_model
+    model.infer = infer
+    return model
