@@ -4,6 +4,7 @@ import torch
 from fairseq.checkpoint_utils import load_model_ensemble_and_task
 from fairseq.models.hubert import HubertModel
 
+
 def get_hubert_model(
     path: str = "assets/hubert/hubert_base.pt",
     device: str | torch.device = torch.device("cpu"),

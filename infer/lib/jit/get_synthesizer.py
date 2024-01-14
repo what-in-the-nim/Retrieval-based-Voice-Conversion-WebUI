@@ -7,6 +7,7 @@ from infer.lib.infer_pack.models import (
     SynthesizerTrnMs768NSFsid_nono,
 )
 
+
 def get_synthesizer(
     path: str,
     device: str | torch.device = "cpu",

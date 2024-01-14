@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class F0Predictor(ABC):
     @abstractmethod
     def compute_f0(self, wav, p_len):

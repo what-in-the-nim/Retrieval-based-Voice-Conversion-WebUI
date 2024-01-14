@@ -4,7 +4,6 @@ import librosa
 import numpy as np
 import onnxruntime
 import soundfile
-
 from modules.F0Predictor import F0PredictorFactory
 
 logger = logging.getLogger(__name__)

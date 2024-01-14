@@ -2,6 +2,7 @@ import torch
 
 from infer.lib.rmvpe import E2E
 
+
 def get_rmvpe(
     path: str = "assets/rmvpe/rmvpe.pt",
     device: str | torch.device = "cpu",
