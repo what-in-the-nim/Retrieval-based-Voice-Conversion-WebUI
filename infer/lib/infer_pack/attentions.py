@@ -1,13 +1,11 @@
-import copy
 import math
 from typing import Optional
 
-import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from infer.lib.infer_pack import commons, modules
+from infer.lib.infer_pack import commons
 from infer.lib.infer_pack.modules import LayerNorm
 
 
@@ -21,7 +19,6 @@ class Encoder(nn.Module):
         kernel_size=1,
         p_dropout=0.0,
         window_size=10,
-        **kwargs
     ):
         super(Encoder, self).__init__()
         self.hidden_channels = hidden_channels
@@ -37,7 +34,7 @@ class Encoder(nn.Module):
         self.norm_layers_1 = nn.ModuleList()
         self.ffn_layers = nn.ModuleList()
         self.norm_layers_2 = nn.ModuleList()
-        for i in range(self.n_layers):
+        for _ in range(self.n_layers):
             self.attn_layers.append(
                 MultiHeadAttention(
                     hidden_channels,
@@ -88,7 +85,6 @@ class Decoder(nn.Module):
         p_dropout=0.0,
         proximal_bias=False,
         proximal_init=True,
-        **kwargs
     ):
         super(Decoder, self).__init__()
         self.hidden_channels = hidden_channels
@@ -107,7 +103,7 @@ class Decoder(nn.Module):
         self.norm_layers_1 = nn.ModuleList()
         self.ffn_layers = nn.ModuleList()
         self.norm_layers_2 = nn.ModuleList()
-        for i in range(self.n_layers):
+        for _ in range(self.n_layers):
             self.self_attn_layers.append(
                 MultiHeadAttention(
                     hidden_channels,
@@ -314,7 +310,6 @@ class MultiHeadAttention(nn.Module):
         if pad_length > 0:
             padded_relative_embeddings = F.pad(
                 relative_embeddings,
-                # commons.convert_pad_shape([[0, 0], [pad_length, pad_length], [0, 0]]),
                 [0, 0, pad_length, pad_length, 0, 0],
             )
         else:
@@ -333,7 +328,6 @@ class MultiHeadAttention(nn.Module):
         # Concat columns of pad to shift from relative to absolute indexing.
         x = F.pad(
             x,
-            #   commons.convert_pad_shape([[0, 0], [0, 0], [0, 0], [0, 1]])
             [0, 1, 0, 0, 0, 0, 0, 0],
         )
 
@@ -341,7 +335,6 @@ class MultiHeadAttention(nn.Module):
         x_flat = x.view([batch, heads, length * 2 * length])
         x_flat = F.pad(
             x_flat,
-            # commons.convert_pad_shape([[0, 0], [0, 0], [0, int(length) - 1]])
             [0, int(length) - 1, 0, 0, 0, 0],
         )
 
@@ -360,14 +353,12 @@ class MultiHeadAttention(nn.Module):
         # padd along column
         x = F.pad(
             x,
-            # commons.convert_pad_shape([[0, 0], [0, 0], [0, 0], [0, int(length) - 1]])
             [0, int(length) - 1, 0, 0, 0, 0, 0, 0],
         )
         x_flat = x.view([batch, heads, int(length**2) + int(length * (length - 1))])
         # add 0's in the beginning that will skew the elements after reshape
         x_flat = F.pad(
             x_flat,
-            #    commons.convert_pad_shape([[0, 0], [0, 0], [int(length), 0]])
             [length, 0, 0, 0, 0, 0],
         )
         x_final = x_flat.view([batch, heads, length, 2 * length])[:, :, :, 1:]
@@ -405,10 +396,6 @@ class FFN(nn.Module):
         self.activation = activation
         self.causal = causal
         self.is_activation = True if activation == "gelu" else False
-        # if causal:
-        #     self.padding = self._causal_padding
-        # else:
-        #     self.padding = self._same_padding
 
         self.conv_1 = nn.Conv1d(in_channels, filter_channels, kernel_size)
         self.conv_2 = nn.Conv1d(filter_channels, out_channels, kernel_size)
@@ -437,10 +424,8 @@ class FFN(nn.Module):
             return x
         pad_l: int = self.kernel_size - 1
         pad_r: int = 0
-        # padding = [[0, 0], [0, 0], [pad_l, pad_r]]
         x = F.pad(
             x,
-            #   commons.convert_pad_shape(padding)
             [pad_l, pad_r, 0, 0, 0, 0],
         )
         return x
@@ -450,10 +435,8 @@ class FFN(nn.Module):
             return x
         pad_l: int = (self.kernel_size - 1) // 2
         pad_r: int = self.kernel_size // 2
-        # padding = [[0, 0], [0, 0], [pad_l, pad_r]]
         x = F.pad(
             x,
-            #   commons.convert_pad_shape(padding)
             [pad_l, pad_r, 0, 0, 0, 0],
         )
         return x
