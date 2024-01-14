@@ -5,6 +5,8 @@ import numpy as np
 import onnxruntime
 import soundfile
 
+from modules.F0Predictor import F0PredictorFactory
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,30 +35,6 @@ class ContentVec:
         onnx_input = {self.model.get_inputs()[0].name: feats}
         logits = self.model.run(None, onnx_input)[0]
         return logits.transpose(0, 2, 1)
-
-
-def get_f0_predictor(f0_predictor, hop_length, sampling_rate, **kargs):
-    if f0_predictor == "pm":
-        from infer.lib.infer_pack.modules.F0Predictor import PMF0Predictor
-
-        f0_predictor_object = PMF0Predictor(
-            hop_length=hop_length, sampling_rate=sampling_rate
-        )
-    elif f0_predictor == "harvest":
-        from infer.lib.infer_pack.modules.F0Predictor import HarvestF0Predictor
-
-        f0_predictor_object = HarvestF0Predictor(
-            hop_length=hop_length, sampling_rate=sampling_rate
-        )
-    elif f0_predictor == "dio":
-        from infer.lib.infer_pack.modules.F0Predictor import DioF0Predictor
-
-        f0_predictor_object = DioF0Predictor(
-            hop_length=hop_length, sampling_rate=sampling_rate
-        )
-    else:
-        raise Exception("Unknown f0 predictor")
-    return f0_predictor_object
 
 
 class OnnxRVC:
@@ -106,11 +84,10 @@ class OnnxRVC:
         f0_max = 1100
         f0_mel_min = 1127 * np.log(1 + f0_min / 700)
         f0_mel_max = 1127 * np.log(1 + f0_max / 700)
-        f0_predictor = get_f0_predictor(
-            f0_method,
+        f0_predictor = F0PredictorFactory.create(
+            f0_method=f0_method,
             hop_length=self.hop_size,
             sampling_rate=self.sampling_rate,
-            threshold=cr_threshold,
         )
         wav, sr = librosa.load(raw_path, sr=self.sampling_rate)
         org_length = len(wav)

@@ -5,13 +5,13 @@ from .pm import PMF0Predictor
 
 class F0PredictorFactory:
     @staticmethod
-    def create(predictor_type) -> F0Predictor:
-        if predictor_type == "dio":
-            return DioF0Predictor()
-        elif predictor_type == "harvest":
-            return HarvestF0Predictor()
-        elif predictor_type == "pm":
-            return PMF0Predictor()
+    def create(f0_method: str, hop_length: int, sample_rate: int) -> F0Predictor:
+        if f0_method == "dio":
+            return DioF0Predictor(hop_length=hop_length, sampling_rate=sample_rate)
+        elif f0_method == "harvest":
+            return HarvestF0Predictor(hop_length=hop_length, sampling_rate=sample_rate)
+        elif f0_method == "pm":
+            return PMF0Predictor(hop_length=hop_length, sampling_rate=sample_rate)
         else:
             raise ValueError("Invalid predictor type")
 
