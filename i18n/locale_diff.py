@@ -1,15 +1,21 @@
+"""
+This script will update all language files to have all the keys
+to match with standard file (zh_CN.json), any extra keys
+will be deleted and any missing keys will be added.
+"""
+
 import json
 import os
+import os.path as op
 from collections import OrderedDict
 
-# Define the standard file name
-standard_file = "locale/zh_CN.json"
+LOCALE_DIR = "locale/"
+standard_file = op.join(LOCALE_DIR, "zh_CN.json")
 
-# Find all JSON files in the directory
-dir_path = "locale/"
-languages = [
-    os.path.join(dir_path, f)
-    for f in os.listdir(dir_path)
+# Find other language files in the locale directory (except the standard file).
+language_files = [
+    op.join(LOCALE_DIR, f)
+    for f in os.listdir(LOCALE_DIR)
     if f.endswith(".json") and f != standard_file
 ]
 
@@ -18,9 +24,9 @@ with open(standard_file, "r", encoding="utf-8") as f:
     standard_data = json.load(f, object_pairs_hook=OrderedDict)
 
 # Loop through each language file
-for lang_file in languages:
+for language_file in language_files:
     # Load the language file
-    with open(lang_file, "r", encoding="utf-8") as f:
+    with open(language_file, "r", encoding="utf-8") as f:
         lang_data = json.load(f, object_pairs_hook=OrderedDict)
 
     # Find the difference between the language file and the standard file
@@ -42,6 +48,6 @@ for lang_file in languages:
     )
 
     # Save the updated language file
-    with open(lang_file, "w", encoding="utf-8") as f:
+    with open(language_file, "w", encoding="utf-8") as f:
         json.dump(lang_data, f, ensure_ascii=False, indent=4, sort_keys=True)
         f.write("\n")
