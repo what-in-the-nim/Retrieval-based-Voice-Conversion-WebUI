@@ -5,7 +5,17 @@ import os
 from typing import Any, Dict
 
 class I18nAuto:
-    """A class for handling internationalization (i18n) and language translation."""
+    """
+    A class for handling internationalization (i18n) and language translation.
+
+    Use this class to translate a zh_CN to other languages.
+
+    Example:
+    --------
+        >>> i18n = I18nAuto("en_US")
+        >>> i18n("你好")
+        "Hello"
+    """
 
     def __init__(self, language: str = "auto") -> None:
         # If the language is auto, get the system's language.
