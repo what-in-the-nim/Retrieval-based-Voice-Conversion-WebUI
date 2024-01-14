@@ -1,20 +1,14 @@
+import datetime
 import logging
 import os
+import random
 import sys
+import time
 
 logger = logging.getLogger(__name__)
 
 now_dir = os.getcwd()
 sys.path.append(os.path.join(now_dir))
-
-import datetime
-
-from infer.lib.train import utils
-
-hps = utils.get_hparams()
-os.environ["CUDA_VISIBLE_DEVICES"] = hps.gpus.replace("-", ",")
-n_gpus = len(hps.gpus.split("-"))
-from random import randint, shuffle
 
 import torch
 
@@ -36,8 +30,6 @@ except Exception:
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
-from time import sleep
-from time import time as ttime
 
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -46,14 +38,10 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from infer.lib.infer_pack import commons
-from infer.lib.train.data_utils import (
-    DistributedBucketSampler,
-    TextAudioCollate,
-    TextAudioCollateMultiNSFsid,
-    TextAudioLoader,
-    TextAudioLoaderMultiNSFsid,
-)
+from infer.lib.train import utils
+
+hps = utils.get_hparams()
+os.environ["CUDA_VISIBLE_DEVICES"] = hps.gpus.replace("-", ",")
 
 if hps.version == "v1":
     from infer.lib.infer_pack.models import MultiPeriodDiscriminator
@@ -68,6 +56,14 @@ else:
         MultiPeriodDiscriminatorV2 as MultiPeriodDiscriminator,
     )
 
+from infer.lib.infer_pack import commons
+from infer.lib.train.data_utils import (
+    DistributedBucketSampler,
+    TextAudioCollate,
+    TextAudioCollateMultiNSFsid,
+    TextAudioLoader,
+    TextAudioLoaderMultiNSFsid,
+)
 from infer.lib.train.losses import (
     discriminator_loss,
     feature_loss,
@@ -81,48 +77,52 @@ global_step = 0
 
 
 class EpochRecorder:
-    def __init__(self):
-        self.last_time = ttime()
+    """
+    This class is used to record the time of each epoch.
+    """
 
-    def record(self):
-        now_time = ttime()
-        elapsed_time = now_time - self.last_time
-        self.last_time = now_time
-        elapsed_time_str = str(datetime.timedelta(seconds=elapsed_time))
+    def __str__(self) -> str:
         current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        elapsed_time = self.now_time - self.last_time
+        elapsed_time_str = str(datetime.timedelta(seconds=elapsed_time))
         return f"[{current_time}] | ({elapsed_time_str})"
+
+    def start(self):
+        self.last_time = time.perf_counter()
+
+    def stop(self):
+        self.now_time = time.perf_counter()
 
 
 def main():
     n_gpus = torch.cuda.device_count()
 
-    if torch.cuda.is_available() == False and torch.backends.mps.is_available() == True:
+    if not torch.cuda.is_available() and torch.backends.mps.is_available():
+        # MPS device
         n_gpus = 1
     if n_gpus < 1:
         # patch to unblock people without gpus. there is probably a better way.
         print("NO GPU DETECTED: falling back to CPU - this may take a while")
         n_gpus = 1
     os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = str(randint(20000, 55555))
-    children = []
-    for i in range(n_gpus):
-        subproc = mp.Process(
-            target=run,
-            args=(i, n_gpus, hps),
-        )
-        children.append(subproc)
+    os.environ["MASTER_PORT"] = str(random.randint(20000, 55555))
+
+    # Spawn one process per GPU
+    childrens = list()
+    for rank in range(n_gpus):
+        subproc = mp.Process(target=run, args=(rank, n_gpus, hps))
+        childrens.append(subproc)
         subproc.start()
 
-    for i in range(n_gpus):
-        children[i].join()
+    # Wait for all subprocesses to finish
+    for rank in range(n_gpus):
+        childrens[rank].join()
 
 
-def run(
-    rank,
-    n_gpus,
-    hps,
-):
+def run(rank: int, n_gpus: int, hps):
     global global_step
+    has_cuda = torch.cuda.is_available()
+    # Main process
     if rank == 0:
         logger = utils.get_logger(hps.model_dir)
         logger.info(hps)
@@ -134,7 +134,7 @@ def run(
         backend="gloo", init_method="env://", world_size=n_gpus, rank=rank
     )
     torch.manual_seed(hps.train.seed)
-    if torch.cuda.is_available():
+    if has_cuda:
         torch.cuda.set_device(rank)
 
     if hps.if_f0 == 1:
@@ -181,10 +181,9 @@ def run(
             **hps.model,
             is_half=hps.train.fp16_run,
         )
-    if torch.cuda.is_available():
-        net_g = net_g.cuda(rank)
     net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm)
-    if torch.cuda.is_available():
+    if has_cuda:
+        net_g = net_g.cuda(rank)
         net_d = net_d.cuda(rank)
     optim_g = torch.optim.AdamW(
         net_g.parameters(),
@@ -202,7 +201,7 @@ def run(
     # net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
     if hasattr(torch, "xpu") and torch.xpu.is_available():
         pass
-    elif torch.cuda.is_available():
+    elif has_cuda:
         net_g = DDP(net_g, device_ids=[rank])
         net_d = DDP(net_d, device_ids=[rank])
     else:
@@ -305,9 +304,9 @@ def train_and_evaluate(
 ):
     net_g, net_d = nets
     optim_g, optim_d = optims
-    train_loader, eval_loader = loaders
+    train_loader, _ = loaders
     if writers is not None:
-        writer, writer_eval = writers
+        writer, _ = writers
 
     train_loader.batch_sampler.set_epoch(epoch)
     global global_step
@@ -392,13 +391,14 @@ def train_and_evaluate(
                     )
         else:
             # Load shuffled cache
-            shuffle(cache)
+            random.shuffle(cache)
     else:
         # Loader
         data_iterator = enumerate(train_loader)
 
     # Run steps
     epoch_recorder = EpochRecorder()
+    epoch_recorder.start()
     for batch_idx, info in data_iterator:
         # Data
         ## Unpack
@@ -619,7 +619,9 @@ def train_and_evaluate(
             )
 
     if rank == 0:
-        logger.info("====> Epoch: {} {}".format(epoch, epoch_recorder.record()))
+        epoch_recorder.stop()
+        used_time = str(epoch_recorder)
+        logger.info(f"====> Epoch: {epoch} {used_time}")
     if epoch >= hps.total_epoch and rank == 0:
         logger.info("Training is done. The program is closed.")
 
@@ -635,7 +637,7 @@ def train_and_evaluate(
                 )
             )
         )
-        sleep(1)
+        time.sleep(1)
         os._exit(2333333)
 
 
