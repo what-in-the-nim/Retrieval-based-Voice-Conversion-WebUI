@@ -40,13 +40,12 @@ mel_basis = {}
 hann_window = {}
 
 
-def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False):
+def spectrogram_torch(y, n_fft, hop_size, win_size, center=False):
     """Convert waveform into Linear-frequency Linear-amplitude spectrogram.
 
     Args:
         y             :: (B, T) - Audio waveforms
         n_fft
-        sampling_rate
         hop_size
         win_size
         center
@@ -120,7 +119,7 @@ def mel_spectrogram_torch(
         melspec :: (B, Freq, Frame) - Mel-frequency Log-amplitude spectrogram
     """
     # Linear-frequency Linear-amplitude spectrogram :: (B, T) -> (B, Freq, Frame)
-    spec = spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center)
+    spec = spectrogram_torch(y, n_fft, hop_size, win_size, center)
 
     # Mel-frequency Log-amplitude spectrogram :: (B, Freq, Frame) -> (B, Freq=num_mels, Frame)
     melspec = spec_to_mel_torch(spec, n_fft, num_mels, sampling_rate, fmin, fmax)
