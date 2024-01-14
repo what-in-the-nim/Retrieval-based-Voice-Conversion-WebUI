@@ -1,19 +1,30 @@
+"""
+This script will scan through every python file in the project
+and extract all strings that are wrapped in the `i18n` function.
+It will then compare the extracted strings with the standard file.
+Any missing or unused strings will be printed out and the standard
+file (zh_CN.json) will be updated accordingly.
+"""
 import ast
 import glob
 import json
 from collections import OrderedDict
+from typing import List
 
 
-def extract_i18n_strings(node):
-    i18n_strings = []
+def extract_i18n_strings(node) -> List[str]:
+    """Extract all i18n strings from an AST node."""
+    i18n_strings = list()
 
+    # Check if the node is a call to the i18n function
+    # e.g. i18n("Hello World")
     if (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
         and node.func.id == "i18n"
     ):
         for arg in node.args:
-            if isinstance(arg, ast.Str):
+            if isinstance(arg, ast.Constant):
                 i18n_strings.append(arg.s)
 
     for child_node in ast.iter_child_nodes(node):
@@ -21,55 +32,62 @@ def extract_i18n_strings(node):
 
     return i18n_strings
 
+def find_all_i18n_strings() -> List[str]:
+    """Find all unique i18n strings inside the project."""
+    strings = list()
+    # Get all python files in the project.
+    python_files = glob.iglob("**/*.py", recursive=True)
+    for python_file in python_files:
+        # Read the code inside the python file.
+        with open(python_file, "r", encoding="utf-8") as file:
+            code = file.read()
 
-# scan the directory for all .py files (recursively)
-# for each file, parse the code into an AST
-# for each AST, extract the i18n strings
+            # Check if the code imports I18nAuto
+            if "I18nAuto" in code:
+                # Parse the code into an AST (Abstract Syntax Tree)
+                tree = ast.parse(code)
+                # Extract the i18n strings from the AST
+                i18n_strings = extract_i18n_strings(tree)
+                # Print the number of i18n strings found in the file.
+                total_strings = len(i18n_strings)
+                print(f"{python_file} contains {total_strings} i18n strings.")
+                # Add the i18n strings to the list of strings.
+                strings.extend(i18n_strings)
+    return strings
 
-strings = []
-for filename in glob.iglob("**/*.py", recursive=True):
-    with open(filename, "r") as f:
-        code = f.read()
-        if "I18nAuto" in code:
-            tree = ast.parse(code)
-            i18n_strings = extract_i18n_strings(tree)
-            print(filename, len(i18n_strings))
-            strings.extend(i18n_strings)
-code_keys = set(strings)
-"""
-n_i18n.py
-gui_v1.py 26
-app.py 16
-infer-web.py 147
-scan_i18n.py 0
-i18n.py 0
-lib/train/process_ckpt.py 1
-"""
-print()
-print("Total unique:", len(code_keys))
+if __name__ == "__main__":
+    # Find all i18n strings in the project.
+    strings = find_all_i18n_strings()
+    # Remove duplicate strings.
+    code_keys = set(strings)
 
+    print("Total unique i18n keys:", len(code_keys))
 
-standard_file = "i18n/locale/zh_CN.json"
-with open(standard_file, "r", encoding="utf-8") as f:
-    standard_data = json.load(f, object_pairs_hook=OrderedDict)
-standard_keys = set(standard_data.keys())
+    # Load the standard file
+    standard_file = "i18n/locale/zh_CN.json"
+    with open(standard_file, "r", encoding="utf-8") as file:
+        standard_data = json.load(file, object_pairs_hook=OrderedDict)
+    # Get the keys of the standard file
+    standard_keys = set(standard_data.keys())
 
-# Define the standard file name
-unused_keys = standard_keys - code_keys
-print("Unused keys:", len(unused_keys))
-for unused_key in unused_keys:
-    print("\t", unused_key)
+    # Print unused keys
+    unused_keys = standard_keys - code_keys
+    print("Unused keys:", len(unused_keys))
+    for unused_key in unused_keys:
+        print("\t", unused_key)
 
-missing_keys = code_keys - standard_keys
-print("Missing keys:", len(missing_keys))
-for missing_key in missing_keys:
-    print("\t", missing_key)
+    # Print missing keys
+    missing_keys = code_keys - standard_keys
+    print("Missing keys:", len(missing_keys))
+    for missing_key in missing_keys:
+        print("\t", missing_key)
 
-code_keys_dict = OrderedDict()
-for s in strings:
-    code_keys_dict[s] = s
+    # Create a dictionary of all code keys we found
+    code_keys_dict = OrderedDict()
+    for s in strings:
+        code_keys_dict[s] = s
 
-# write back
-with open(standard_file, "w", encoding="utf-8") as f:
-    json.dump(code_keys_dict, f, ensure_ascii=False, indent=4, sort_keys=True)
-    f.write("\n")
+    # Update the standard file with the new code keys
+    with open(standard_file, "w", encoding="utf-8") as file:
+        json.dump(code_keys_dict, file, ensure_ascii=False, indent=4, sort_keys=True)
+        file.write("\n")
