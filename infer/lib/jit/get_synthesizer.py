@@ -1,38 +1,37 @@
 import torch
 
+from infer.lib.infer_pack.models import (
+    SynthesizerTrnMs256NSFsid,
+    SynthesizerTrnMs256NSFsid_nono,
+    SynthesizerTrnMs768NSFsid,
+    SynthesizerTrnMs768NSFsid_nono,
+)
 
-def get_synthesizer(pth_path, device=torch.device("cpu")):
-    from infer.lib.infer_pack.models import (
-        SynthesizerTrnMs256NSFsid,
-        SynthesizerTrnMs256NSFsid_nono,
-        SynthesizerTrnMs768NSFsid,
-        SynthesizerTrnMs768NSFsid_nono,
-    )
-
-    cpt = torch.load(pth_path, map_location=torch.device("cpu"))
-    # tgt_sr = cpt["config"][-1]
-    cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]
-    if_f0 = cpt.get("f0", 1)
-    version = cpt.get("version", "v1")
+def get_synthesizer(
+    path: str,
+    device: str | torch.device = "cpu",
+):
+    # Load state_dict inside CPU first.
+    state_dict = torch.load(path, map_location="cpu")
+    state_dict["config"][-3] = state_dict["weight"]["emb_g.weight"].shape[0]
+    # Check if state_dict contains f0
+    if_f0 = state_dict.get("f0", 1)
+    version = state_dict.get("version", "v1")
     if version == "v1":
         if if_f0 == 1:
-            net_g = SynthesizerTrnMs256NSFsid(*cpt["config"], is_half=False)
+            net_g = SynthesizerTrnMs256NSFsid(*state_dict["config"], is_half=False)
         else:
-            net_g = SynthesizerTrnMs256NSFsid_nono(*cpt["config"])
+            net_g = SynthesizerTrnMs256NSFsid_nono(*state_dict["config"])
     elif version == "v2":
         if if_f0 == 1:
-            net_g = SynthesizerTrnMs768NSFsid(*cpt["config"], is_half=False)
+            net_g = SynthesizerTrnMs768NSFsid(*state_dict["config"], is_half=False)
         else:
-            net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
+            net_g = SynthesizerTrnMs768NSFsid_nono(*state_dict["config"])
+
     del net_g.enc_q
-    # net_g.forward = net_g.infer
-    # ckpt = {}
-    # ckpt["config"] = cpt["config"]
-    # ckpt["f0"] = if_f0
-    # ckpt["version"] = version
-    # ckpt["info"] = cpt.get("info", "0epoch")
-    net_g.load_state_dict(cpt["weight"], strict=False)
+
+    net_g.load_state_dict(state_dict["weight"], strict=False)
     net_g = net_g.float()
     net_g.eval().to(device)
     net_g.remove_weight_norm()
-    return net_g, cpt
+    return net_g, state_dict
