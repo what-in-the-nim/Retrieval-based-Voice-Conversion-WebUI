@@ -1,17 +1,11 @@
 import numpy as np
 import pyworld
 
-from infer.lib.infer_pack.modules.F0Predictor.base import F0Predictor
+from infer.lib.infer_pack.modules.f0.base import F0Predictor
 
 
-class DioF0Predictor(F0Predictor):
-    def __init__(
-        self,
-        hop_length: int = 512,
-        f0_min: int = 50,
-        f0_max: int = 1100,
-        sampling_rate: int = 44100,
-    ) -> None:
+class HarvestF0Predictor(F0Predictor):
+    def __init__(self, hop_length=512, f0_min=50, f0_max=1100, sampling_rate=44100):
         self.hop_length = hop_length
         self.f0_min = f0_min
         self.f0_max = f0_max
@@ -69,22 +63,20 @@ class DioF0Predictor(F0Predictor):
     def compute_f0(self, wav, p_len=None):
         if p_len is None:
             p_len = wav.shape[0] // self.hop_length
-        f0, t = pyworld.dio(
+        f0, t = pyworld.harvest(
             wav.astype(np.double),
             fs=self.sampling_rate,
-            f0_floor=self.f0_min,
             f0_ceil=self.f0_max,
+            f0_floor=self.f0_min,
             frame_period=1000 * self.hop_length / self.sampling_rate,
         )
-        f0 = pyworld.stonemask(wav.astype(np.double), f0, t, self.sampling_rate)
-        for index, pitch in enumerate(f0):
-            f0[index] = round(pitch, 1)
+        f0 = pyworld.stonemask(wav.astype(np.double), f0, t, self.fs)
         return self.interpolate_f0(self.resize_f0(f0, p_len))[0]
 
     def compute_f0_uv(self, wav, p_len=None):
         if p_len is None:
             p_len = wav.shape[0] // self.hop_length
-        f0, t = pyworld.dio(
+        f0, t = pyworld.harvest(
             wav.astype(np.double),
             fs=self.sampling_rate,
             f0_floor=self.f0_min,
@@ -92,6 +84,4 @@ class DioF0Predictor(F0Predictor):
             frame_period=1000 * self.hop_length / self.sampling_rate,
         )
         f0 = pyworld.stonemask(wav.astype(np.double), f0, t, self.sampling_rate)
-        for index, pitch in enumerate(f0):
-            f0[index] = round(pitch, 1)
         return self.interpolate_f0(self.resize_f0(f0, p_len))
